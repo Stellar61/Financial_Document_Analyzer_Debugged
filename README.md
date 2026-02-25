@@ -412,3 +412,206 @@ The system now:
 ✔ Handles different financial document formats
 ✔ Uses a stable multi-agent architecture
 ✔ Executes efficiently without hallucination
+
+🚀 Asynchronous Processing with Celery, Redis & Database Integration
+
+To improve scalability, responsiveness, and production-readiness, the system was upgraded from a synchronous API architecture to an asynchronous distributed task-processing architecture using Redis, Celery, and database integration.
+
+🧠 Why This Upgrade Was Necessary
+❌ Original Architecture (Before Celery)
+
+FastAPI handled file upload.
+
+CrewAI + LLM processing ran inside the API request cycle.
+
+Large documents caused:
+
+Long blocking requests (3–6 minutes)
+
+Timeout risks
+
+Poor scalability
+
+Bad user experience
+
+The API would freeze until AI analysis finished.
+
+✅ Updated Architecture (After Celery + Redis)
+
+The system now follows a production-style asynchronous workflow:
+
+Client
+   ↓
+FastAPI
+   ↓
+Redis (Message Broker)
+   ↓
+Celery Worker
+   ↓
+CrewAI Multi-Agent Execution
+   ↓
+Redis (Result Backend)
+   ↓
+FastAPI Status Endpoint
+🔴 Redis — Message Broker & Result Backend
+
+Redis is used as:
+
+📬 Task queue (broker)
+
+📦 Result storage (backend)
+
+When a document is uploaded:
+
+FastAPI sends the analysis job to Redis.
+
+Redis queues the task.
+
+Celery worker consumes it.
+
+Final result is stored back in Redis.
+
+Redis Setup
+docker run -d -p 6379:6379 redis
+
+Redis runs on:
+
+redis://localhost:6379/0
+🟢 Celery — Background Task Processor
+
+Celery is responsible for:
+
+Executing heavy AI workloads
+
+Running CrewAI multi-agent pipeline
+
+Preventing FastAPI from blocking
+
+Managing task lifecycle (PENDING → STARTED → SUCCESS/FAILURE)
+
+Celery Worker Start Command
+celery -A celery_worker.celery_app worker --loglevel=info --pool=solo
+
+--pool=solo is recommended for Windows environments.
+
+📡 Updated API Flow
+1️⃣ Submit Analysis
+POST /analyze
+
+Instead of returning analysis immediately, the API now returns:
+
+{
+  "task_id": "defa9ad7-95a3-4c30-98be-87eb4e858d67",
+  "status": "PENDING"
+}
+2️⃣ Check Task Status
+GET /status/{task_id}
+
+Possible responses:
+
+🔄 While Running
+{
+  "task_id": "...",
+  "status": "PENDING"
+}
+✅ On Completion
+{
+  "task_id": "...",
+  "status": "SUCCESS",
+  "result": { ... }
+}
+🗄 Database Integration (Persistence Layer)
+
+To further enhance the system and satisfy bonus requirements, database integration was introduced.
+
+Why Add a Database?
+
+Redis stores task results temporarily.
+
+A database allows:
+
+Persistent storage of analysis history
+
+Audit trail of uploaded files
+
+Tracking of user queries
+
+Long-term storage of AI results
+
+Better enterprise-readiness
+
+📊 Stored Data Includes
+
+Task ID
+
+Filename
+
+User Query
+
+Task Status
+
+AI Result
+
+Timestamp
+
+This enables features such as:
+
+GET /history
+GET /history/{task_id}
+🏗 Full System Architecture
+
+The system now runs using three parallel services:
+
+🟢 Terminal 1 — Redis
+
+Message broker + result storage
+
+🟢 Terminal 2 — Celery Worker
+
+Background AI processor
+
+🟢 Terminal 3 — FastAPI Server
+
+API interface
+
+⚡ Benefits of This Architecture
+Feature	Before	After
+API Blocking	Yes	No
+Scalable	No	Yes
+Timeout Risk	High	Minimal
+Background Processing	No	Yes
+Production Ready	No	Yes
+Persistent History	No	Yes
+🧪 Example Execution Log (Celery)
+Task tasks.analyze_document_task[...] received
+Task ... succeeded in 322.90s
+
+This confirms:
+
+Redis queued the job
+
+Celery processed the job
+
+Multi-agent analysis executed successfully
+
+Result stored and retrievable
+
+🎯 What This Demonstrates
+
+This upgrade shows:
+
+✔ Understanding of distributed systems
+✔ Async architecture design
+✔ Queue-based processing
+✔ Production-grade API design
+✔ Integration of AI pipelines into scalable systems
+
+🏁 Final Outcome
+
+The system evolved from a:
+
+Simple synchronous AI API
+
+to a:
+
+Scalable, distributed, asynchronous multi-agent financial analysis platform.
