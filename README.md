@@ -1,54 +1,64 @@
 # Financial_Document_Analyzer_Debugged
 A Multi Agent document analyzer system which extracts financial information from a financial report or statements and provides analysis reports, risk assessment and investment recommendations.
 
-📊 Financial Document Analyzer – Debug Assignment (Completed)
-🔍 Project Overview
+📊 Financial Document Analyzer (Debugged Version)
 
-This project is a multi-agent AI-powered financial document analysis system built using:
+A multi-agent AI-powered financial document analysis system that extracts structured financial metrics from financial reports and generates:
+
+📈 Financial analysis
+
+⚠ Risk assessment
+
+💡 Investment recommendations
+
+🚀 Project Overview
+
+This project was provided in debug mode as part of a selection assignment.
+The original system contained multiple architectural and implementation bugs.
+
+This version represents the fully debugged, stabilized, and optimized system.
+
+🛠 Built With
 
 FastAPI
 
-CrewAI
+CrewAI (Multi-Agent Orchestration)
 
 LangChain PDF Loader
 
-LLM (migrated from OpenAI to Ollama)
+Ollama (Local LLM – Mistral)
 
-The system is designed to:
+Pydantic v2
 
-Upload financial PDF documents
+🎯 System Capabilities
 
-Verify document type
-
-Extract structured financial metrics
-
-Perform financial analysis
-
-Assess risks
-
-Provide investment insights
+✅ Upload financial PDF documents
+✅ Verify document type
+✅ Extract structured financial metrics
+✅ Compute profitability margins
+✅ Perform risk assessment
+✅ Generate investment outlook
+✅ Multi-agent sequential workflow
+✅ Structured JSON output
+✅ Fast, stable execution
+✅ No hallucinated financial data
 
 🐛 Debugging Summary
 
 The original project was intentionally broken.
-Below is a complete breakdown of all major bugs identified and how they were fixed.
+Below is a complete breakdown of all major issues identified and how they were fixed.
 
 🧩 1️⃣ LLM Not Initialized
 ❌ Original Bug
-
-In agents.py:
-
 llm = llm
 
-No LLM was actually initialized.
+No model was initialized.
 
 🔎 Root Cause
 
-No OpenAI configuration
+No OpenAI API key loading
 
-No API key loading
-
-No proper LLM instantiation
+No LLM instantiation
 
 Agents created without a working model
 
@@ -71,22 +81,21 @@ No rate limits
 
 Faster local inference
 
+Fully offline capable
+
 🧩 2️⃣ Uploaded File Path Not Passed to Agent
 ❌ Original Bug
-
-run_crew() ignored uploaded file:
-
 financial_crew.kickoff({'query': query})
 
-File path was never passed.
+Uploaded file path was ignored.
 
 🔎 Impact
 
-Uploaded file was saved
+Uploaded file saved
 
-But system always read data/sample.pdf
+System always analyzed data/sample.pdf
 
-User upload was ignored
+User upload had no effect
 
 ✅ Fix
 financial_crew.kickoff(
@@ -101,26 +110,22 @@ System now analyzes the actual uploaded document.
 
 🧩 3️⃣ PDF Loader Import Missing
 ❌ Original Bug
+Pdf(file_path=path).load()
 
-Pdf(file_path=path).load() was used without importing Pdf.
+Pdf was never imported.
 
 🔎 Impact
 
 Application crashed on startup.
 
 ✅ Fix
-
-Replaced with:
-
 from langchain_community.document_loaders import PyPDFLoader
-
-And:
 
 loader = PyPDFLoader(path)
 docs = loader.load()
 🚀 Impact
 
-PDF loading works correctly.
+Stable PDF loading for all financial documents.
 
 🧩 4️⃣ Entire PDF Sent to LLM (Hallucination Issue)
 ❌ Original Behavior
@@ -129,7 +134,7 @@ Tool returned:
 
 return full_report
 
-Entire document text was passed to LLM.
+Entire document passed to LLM.
 
 🔎 Impact
 
@@ -141,7 +146,7 @@ Fake EBITDA
 
 Fake risks
 
-Fake ratios
+Fake margins
 
 Unreliable output.
 
@@ -149,15 +154,15 @@ Unreliable output.
 
 Rebuilt FinancialDocumentTool to:
 
-Extract only target metrics
+Extract only relevant financial metrics
 
 Normalize units (B → millions)
 
-Use regex-based numeric extraction
+Use regex-based extraction
 
 Return structured JSON
 
-Example output:
+Example tool output:
 
 {
   "revenue": 16661.0,
@@ -167,13 +172,13 @@ Example output:
 }
 🚀 Impact
 
-No hallucinated numbers
-
 Deterministic extraction
 
-Faster response
+No hallucinated numbers
 
 Reduced token usage
+
+Faster execution
 
 🧩 5️⃣ Pydantic v2 Validation Errors
 ❌ Errors Encountered
@@ -182,7 +187,7 @@ args_schema overridden by non-annotated attribute
 
 TARGET_METRICS missing annotation
 
-Tool instance validation failure
+Tool validation failures
 
 🔎 Root Cause
 
@@ -194,15 +199,16 @@ ClassVar for constants
 
 ✅ Fix
 from typing import ClassVar, Dict, List, Type
+
 TARGET_METRICS: ClassVar[Dict[str, List[str]]] = {...}
 args_schema: Type[BaseModel] = FinancialDocumentInput
 🚀 Impact
 
-Fully compatible with Pydantic v2
-
-No validation crashes
+Full Pydantic v2 compatibility
 
 Stable agent initialization
+
+No startup crashes
 
 🧩 6️⃣ Nonexistent Tool “Calculations” Called
 ❌ Problem
@@ -211,11 +217,11 @@ Agent attempted:
 
 Action: Calculations
 
-But no such tool existed.
+No such tool existed.
 
 🔎 Impact
 
-Infinite loop
+Infinite loops
 
 “Maximum iterations reached”
 
@@ -223,11 +229,11 @@ Timeout errors
 
 ✅ Fix
 
-Moved all margin calculations into tool:
+Moved margin calculations inside the tool:
 
 operating_margin = (operating_income / revenue) * 100
 
-Prompt updated to:
+Updated prompt:
 
 Do NOT perform calculations. Use tool output only.
 
@@ -237,18 +243,18 @@ No infinite loops
 
 Stable execution
 
-Faster responses
+Faster response times
 
-🧩 7️⃣ Infinite Iterations / Timeout Error
+🧩 7️⃣ Infinite Iterations & Timeout Error
 ❌ Error
 litellm.Timeout: Connection timed out after 600 seconds
 🔎 Cause
 
-Agent looping
+Agent reasoning loops
 
-Large document passed to LLM
+Large PDF context
 
-Excessive reasoning steps
+Repeated tool invocation
 
 ✅ Fixes
 
@@ -256,15 +262,17 @@ Reduced max_iter
 
 Structured tool output
 
-Prevented hallucination loops
+Removed RPM throttling
 
-Removed RPM limits
+Prevented unnecessary re-calls
 
 🚀 Impact
 
 Stable under 5–10 seconds
 
 No timeouts
+
+Predictable execution
 
 🧩 8️⃣ Multi-Agent Architecture Not Integrated
 ❌ Original Issue
@@ -273,7 +281,7 @@ Multiple agents defined but only one used.
 
 ✅ Fix
 
-Integrated:
+Integrated sequential pipeline:
 
 verifier
 
@@ -283,20 +291,18 @@ risk_assessor
 
 investment_advisor
 
-Into sequential Crew pipeline.
-
 🚀 Impact
 
-True multi-agent execution achieved.
+True multi-agent architecture achieved.
 
 🧩 9️⃣ Hardcoded Financial Phrases (Not Generalized)
 ❌ Issue
 
-Tool worked only for Tesla-like format.
+Tool worked only for Tesla-style reports.
 
 ✅ Fix
 
-Added generalized metric detection:
+Generalized metric detection:
 
 TARGET_METRICS = {
     "revenue": ["total revenue", "total revenues"],
@@ -308,15 +314,15 @@ Case-insensitive matching + regex extraction.
 
 🚀 Impact
 
-Works for:
+Now works for:
 
 Annual reports
 
-Quarterly reports
+Quarterly earnings
 
-Earnings presentations
+Corporate filings
 
-Different financial formats
+Various financial formats
 
 🧩 🔟 Risk Agent Hallucinating Risks
 ❌ Original Prompt Encouraged Fabrication
@@ -325,25 +331,15 @@ Risk agent created generic fake risks.
 
 ✅ Fix
 
-Updated instructions:
+Updated instruction:
 
-Only extract risks explicitly mentioned
+Extract only risks explicitly mentioned
 
-If none found → state clearly
+If none found → clearly state
 
 🚀 Impact
 
-More controlled output.
-
-📈 Final System Capabilities
-
-✔ Upload financial PDFs
-✔ Extract structured metrics
-✔ Compute margins
-✔ Multi-agent workflow
-✔ JSON structured response
-✔ Fast execution
-✔ No hallucinated numbers
+More controlled, realistic output.
 
 ⚙ Setup Instructions
 1️⃣ Install Dependencies
@@ -351,37 +347,37 @@ pip install -r requirement.txt
 2️⃣ Install Ollama
 
 Download from:
+
 https://ollama.com
 
 Pull model:
 
 ollama pull mistral
 
-Start Ollama:
+Run model:
 
 ollama run mistral
-3️⃣ Run FastAPI Server
+3️⃣ Start FastAPI Server
 uvicorn main:app --reload
 🌐 API Documentation
 
-After running:
-
-Visit:
+After starting the server:
 
 http://127.0.0.1:8000/docs
-📌 Endpoint: POST /analyze
+📌 API Endpoint
+POST /analyze
 Request
 
-file: PDF file (required)
+file → PDF (required)
 
-query: optional string
+query → optional string
 
 Example cURL
 curl -X 'POST' \
   'http://127.0.0.1:8000/analyze' \
   -F 'file=@sample.pdf;type=application/pdf' \
   -F 'query=Analyze this financial document'
-Response
+Example Response
 {
   "status": "success",
   "analysis": "...",
@@ -389,7 +385,7 @@ Response
 }
 🏁 Final Outcome
 
-This debugging process:
+Through systematic debugging, this project:
 
 Identified architectural flaws
 
@@ -397,14 +393,22 @@ Fixed LLM initialization
 
 Fixed file handling
 
-Fixed Pydantic validation
+Resolved Pydantic v2 validation issues
 
-Eliminated hallucinations
+Eliminated hallucinated financial values
 
 Stabilized tool-based extraction
 
-Integrated multi-agent architecture
+Integrated true multi-agent orchestration
 
 Prevented infinite loops and timeouts
 
-The system now runs reliably and produces structured financial analysis.
+✅ Result
+
+The system now:
+
+✔ Runs reliably
+✔ Produces structured financial analysis
+✔ Handles different financial document formats
+✔ Uses a stable multi-agent architecture
+✔ Executes efficiently without hallucination
